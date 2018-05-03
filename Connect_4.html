@@ -1,0 +1,509 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Connect 4</title>
+   <script src="pixi.min.js"></script>
+</head>
+<body>
+  <script type="text/javascript">
+  	var renderer = PIXI.autoDetectRenderer(1200, 800);
+	document.body.appendChild(renderer.view);
+  	var stage = new PIXI.Container();
+  	var TextureCache = PIXI.utils.TextureCache;
+    var resources = PIXI.loader.resources;
+    var Sprite = PIXI.Sprite;
+  	let theBody = document.getElementsByTagName("body")[0];
+  	renderer.backgroundColor = 0xFFFFFF;
+  	NB_COL = 7;
+	NB_LIG   = 6; 
+	joueurCourant=0;//Player playing.
+	var Ordi=false; //Variable to play with the computer.
+	var joueur = new Array ();
+		for (i=0; i < 3; i++){
+			joueur[i]= i+1;
+		}
+	var k = new Array ();//variable to prevent adding pions to a full column.
+		for (i=0; i < 7; i++){
+			k[i] = false;
+		}
+	var grille = new Array();
+  		for (i=0; i < 7; i++)
+		{
+			grille[i] = new Array();
+		}	
+		for (i=0; i < 7; i++)
+		{
+			for (j=0; j < 6; j++)
+			{
+				grille[i][j] = 0;
+			}
+		}
+		var jeu = new Array();//grid copy
+  		for (i=0; i < 7; i++)
+		{
+			jeu[i] = new Array();
+		}	
+		for (i=0; i < 7; i++)
+		{
+			for (j=0; j < 6; j++)
+			{
+				jeu[i][j] = 0;
+			}
+		}
+	
+	//Minmax algorithm for AI (not optimize).
+	function IA_jouer(profondeur){
+	 var tmp=0;
+	 var maxi;
+	 var maxj;
+     var max = -10000;
+     for(col=0;col<7;col++)
+     {
+          for(lig=0;lig<6;lig++)
+          {
+                if(jeu[col][lig] == 0)
+                {
+                      jeu[col][lig] = 1;
+                      tmp = Min(profondeur-1);
+                      if(tmp > max)
+                      {
+                            max = tmp;
+                            maxi = col;
+                            maxj = lig;
+                      }
+                }
+          }
+     }
+     for(col=0;col<7;col++)
+     	{
+        for(lig=0;lig<6;lig++)
+          {
+            jeu[col][lig] = grille[col][lig];
+        	}
+        }
+     	return maxi;
+}
+	function Max(profondeur){
+	
+	 var tmp=0;
+     if(profondeur == 0 || gagnantOrdi()!=0)
+     {
+          return evaluation();
+     }
+     var max = -10000;
+     for(i=0;i<7;i++)
+     {
+          for(j=0;j<6;j++)
+          {
+                if(jeu[i][j] == 0)
+                {
+                      jeu[i][j] = 2;
+                      tmp = Min(profondeur-1);
+                      if(tmp > max)
+                      {
+                            max = tmp;
+                      }
+                }
+          }
+     }
+     return max;
+}
+	function Min(profondeur){
+	
+	var tmp=0;
+     if(profondeur == 0 || gagnantOrdi()!=0)
+     {
+          return evaluation();
+     }
+     var min = 10000;
+     for(i=0;i<7;i++)
+     {
+          for(j=0;j<6;j++)
+          {
+                if(jeu[i][j] == 0)
+                {
+                      jeu[i][j] = 1;
+                      tmp = Max(profondeur-1);
+                      if(tmp < min)
+                      {
+                            min = tmp;
+                      }
+                }
+          }
+     }
+     return min;
+}
+	function evaluation(){
+
+     var vainqueur=0;
+     var nb_de_pions = 0;
+
+     for(i=0;i<7;i++)
+     {
+          for(j=0;j<6;j++)
+          {
+               if(jeu[i][j] != 0)
+               {
+                    nb_de_pions++;
+               }
+          }
+     }
+     if( vainqueur == gagnantOrdi())
+     {
+          if( vainqueur == 1 )
+          {
+               return 1000 - nb_de_pions;
+          }
+          else if( vainqueur == 2 )
+          {
+               return -1000 + nb_de_pions;
+          }
+          else
+          {
+               return 0;
+          }
+     }
+}	
+	function gagnantOrdi() {
+		var vainqueur=0;
+		var col=0;
+		while ((vainqueur==0) && (col<NB_COL)) {
+			lig=0;
+			while ((vainqueur==0) && (lig<NB_LIG)) {
+				if ((col<(NB_COL-3))) {
+					if ((jeu[col][lig]==jeu[col+1][lig]) 
+					&& (jeu[col][lig]==jeu[col+2][lig]) 
+					&& (jeu[col][lig]==jeu[col+3][lig])) {
+						vainqueur=jeu[col][lig];
+				}
+					else {
+						vainqueur=0;
+				}
+				}
+				if ((vainqueur==0) && (lig<(NB_LIG-3))) {
+					if ((jeu[col][lig]==jeu[col][lig+1]) 
+					&& (jeu[col][lig]==jeu[col][lig+2]) 
+					&& (jeu[col][lig]==jeu[col][lig+3])) {
+						vainqueur=jeu[col][lig];
+				}
+					else {
+						vainqueur=0;
+				}
+				}
+				if ((vainqueur==0) && (col<NB_COL-3) && (lig<NB_LIG-3)) {
+					if ((jeu[col][lig]==jeu[col+1][lig+1]) 
+					&& (jeu[col][lig]==jeu[col+2][lig+2]) 
+					&& (jeu[col][lig]==jeu[col+3][lig+3])) {
+						vainqueur=jeu[col][lig];
+				}
+					else {
+						vainqueur=0;
+				}
+				}
+				if ((vainqueur==0) && (col>2) && (lig<NB_LIG-3)) {
+					if ((jeu[col][lig]==jeu[col-1][lig+1]) 
+					&& (jeu[col][lig]==jeu[col-2][lig+2]) 
+					&& (jeu[col][lig]==jeu[col-3][lig+3])) {
+						vainqueur=jeu[col][lig];
+				}
+					else {
+						vainqueur=0;
+				}
+				}
+				lig++;
+			}
+			col++;
+		}
+		return vainqueur;
+		
+	}
+	
+	//Method to drop a pawn and test the winner.
+	function GrillePPO(grille){
+	
+	this.grille = grille;
+	
+	this.GrillePPO=function() {
+		for (col=0 ; col<NB_COL ; col++ ) {
+			for (lig=0 ; lig<NB_LIG ; lig++) {
+				this.grille[col][lig]=0;
+			}
+		}
+	}
+		this.gagnantHorizontal=function(col, lig) {
+		if ((this.grille[col][lig]==this.grille[col+1][lig]) 
+				&& (this.grille[col][lig]==this.grille[col+2][lig]) 
+				&& (this.grille[col][lig]==this.grille[col+3][lig])) {
+			return this.grille[col][lig];
+		}
+		else {
+			return 0;
+		}
+	}
+	this.gagnantVertical=function(col, lig) {
+		if ((this.grille[col][lig]==this.grille[col][lig+1]) 
+				&& (this.grille[col][lig]==this.grille[col][lig+2]) 
+				&& (this.grille[col][lig]==this.grille[col][lig+3])) {
+			return this.grille[col][lig];
+		}
+		else {
+			return 0;
+		}
+	}
+	this.gagnantDiagonale1=function(col, lig){
+		if ((this.grille[col][lig]==this.grille[col+1][lig+1]) 
+				&& (this.grille[col][lig]==this.grille[col+2][lig+2]) 
+				&& (this.grille[col][lig]==this.grille[col+3][lig+3])) {
+			return this.grille[col][lig];
+		}
+		else {
+			return 0;
+		}
+	}
+	this.gagnantDiagonale2=function(col, lig){
+		if ((this.grille[col][lig]==this.grille[col-1][lig+1]) 
+				&& (this.grille[col][lig]==this.grille[col-2][lig+2]) 
+				&& (this.grille[col][lig]==this.grille[col-3][lig+3])) {
+			return this.grille[col][lig];
+		}
+		else {
+			return 0;
+		}
+	}
+	this.gagnant=function() {
+		vainqueur=0;
+		col=0;
+		while ((vainqueur==0) && (col<NB_COL)) {
+			lig=0;
+			while ((vainqueur==0) && (lig<NB_LIG)) {
+				if ((col<(NB_COL-3)) && (this.gagnantHorizontal(col,lig)!=0)) {
+					vainqueur=this.gagnantHorizontal(col, lig);
+				}
+				if ((vainqueur==0) && (lig<(NB_LIG-3)) && (this.gagnantVertical(col,lig)!=0)) {
+					vainqueur=this.gagnantVertical(col,lig);
+				}
+				if ((vainqueur==0) && (col<NB_COL-3) && (lig<NB_LIG-3) && (this.gagnantDiagonale1(col,lig)!=0)) {
+					vainqueur=this.gagnantDiagonale1(col,lig);
+				}
+				if ((vainqueur==0) && (col>2) && (lig<NB_LIG-3) && (this.gagnantDiagonale2(col,lig)!=0)) {
+					vainqueur=this.gagnantDiagonale2(col,lig);
+				}
+				lig++;
+			}
+			col++;
+		}
+		return vainqueur;
+		
+	}
+	this.deposerPion=function(col, joueurCourant) {
+		var ligne=0;
+		while (ligne<this.grille[col].length-1 && this.grille[col][ligne]!=0) {
+			ligne++;
+		}
+		if (ligne<this.grille[col].length) {
+			this.grille[col][ligne]=joueur[joueurCourant];
+			jeu[col][ligne]==joueur[joueurCourant];
+		}
+			if(this.grille[col][5]==joueur[joueurCourant]){
+				k[col]=true;
+			}
+			return ligne;
+	}
+	
+	}
+	grille2 = new GrillePPO(grille);
+	
+	//Method to alert the player he has won and to reset the game.
+	function gagner(){
+  		if((grille2.gagnant()==1) || (grille2.gagnant()==2)){
+			setTimeout(function(){ alert("Gagnant Joueur "+vainqueur); }, 100);
+			var monson = document.getElementById("monson");
+			monson.play();
+			setTimeout(function(){reset();}, 500);
+			setTimeout(function(){stage.removeChildren(27,stage.children.length);}, 100);
+		}
+	}
+	function reset(){
+		joueurCourant=0;
+		for(i=0;i<NB_COL;i++){
+  		k[i]=false
+		}
+		for (col=0 ; col<NB_COL ; col++ ) {
+			for (lig=0 ; lig<NB_LIG ; lig++) {
+				grille[col][lig]=0;
+			}
+		}
+	}
+	
+	//All the buttons of the game.
+	function Joueur2(){
+		var Joueur2 = PIXI.Sprite.fromImage('images/human.png');
+		Joueur2.height=100;
+		Joueur2.width=100;
+		Joueur2.x=950;
+		Joueur2.y=270;
+		Joueur2.interactive=true;
+		Joueur2.buttonMode=true;
+		Joueur2.mousedown=function(mouseData){
+			Ordi=false;
+			reset();
+			stage.removeChildren(27,stage.children.length);
+		}
+		stage.addChild(Joueur2);
+	}
+	function Computer(){
+		var Computer = PIXI.Sprite.fromImage('images/computer.png');
+		Computer.height=100;
+		Computer.width=100;
+		Computer.x=950;
+		Computer.y=420;
+		Computer.interactive=true;
+		Computer.buttonMode=true;
+		Computer.mousedown=function(mouseData){
+			Ordi=true;
+			reset();
+			stage.removeChildren(27,stage.children.length);
+		}
+		stage.addChild(Computer);
+	}
+	function boutonReset(){
+		var resetb = PIXI.Sprite.fromImage('images/reset.png');
+		resetb.width=100;
+		resetb.height=100;
+		resetb.x=552;
+		resetb.y=680;
+		resetb.interactive=true;
+		resetb.buttonMode=true;
+		resetb.mousedown=function(mousedata){
+			reset();
+			stage.removeChildren(27,stage.children.length);
+		
+		}
+		stage.addChild(resetb);
+	}
+	function iniPion1(col, ligne){
+			var pion1 = new PIXI.Graphics();
+			pion1.beginFill(0xFFFF00);
+			pion1.drawCircle(360+80*col, 620-ligne*80, 30);
+			pion1.endFill();
+			stage.addChild(pion1);
+	}
+	function iniPion2(col, ligne){
+			var pion2 = new PIXI.Graphics();
+			pion2.beginFill(0xFF0000);
+			pion2.drawCircle(360+80*col, 620-ligne*80, 30);
+			pion2.endFill();
+			stage.addChild(pion2);
+	}
+	
+	//Graphical interface of the grid.
+  	function iniColumn(){
+  		for(i = 3; i<NB_COL+3;i++){
+  			var col = new PIXI.Graphics();
+  			col.beginFill(0x2e86c1 );
+  			col.drawRect(320+(i-3)*80, 180, 80, 480);
+  			for(j = 0;j<NB_LIG;j++){
+  				col.beginFill(0xFFFFFF);
+  				col.drawCircle(360+(i-3)*80,j*80+220,30);
+  				col.endFill();
+  			}
+  			col.hitArea = new PIXI.Rectangle(320+(i-3)*80, 180, 80, 480);
+  			col.endFill();
+  			stage.addChild(col);
+  			stage.children[i].interactive = true;
+  		stage.children[i].mouseover = function(mouseData){
+  			this.alpha=0.5; 
+  			if(joueurCourant==0){
+  			stage.children[stage.getChildIndex(this)+7].alpha = 1;
+  		}
+  		else{
+  			stage.children[stage.getChildIndex(this)+14].alpha = 1;
+  		}
+  		}
+  		stage.children[i].mouseout = function(mouseData) {
+  			this.alpha=1;
+  			stage.children[stage.getChildIndex(this)+14].alpha=0;
+  			stage.children[stage.getChildIndex(this)+7].alpha=0;
+  		}
+  		stage.children[i].mousedown = function(mousedata) {
+  			if(k[stage.getChildIndex(this)-3]==false){
+				if(joueurCourant==0){
+					iniPion1(stage.getChildIndex(this)-3,grille2.deposerPion(stage.getChildIndex(this)-3, 0));
+					gagner();
+  				}
+  				else if(joueurCourant==1){
+  					iniPion2(stage.getChildIndex(this)-3,grille2.deposerPion(stage.getChildIndex(this)-3, 1));
+  					gagner();
+  				}
+  				if(Ordi==true){
+  					var IA = IA_jouer(7);
+  					setTimeout(function(){iniPion2(IA,grille2.deposerPion(IA, 1));},100);
+  					gagner();
+  				}
+  				if(joueurCourant==0 && Ordi==false){
+					joueurCourant=1;
+					stage.children[stage.getChildIndex(this)+14].alpha=1;
+  					stage.children[stage.getChildIndex(this)+7].alpha=0;
+				}
+				else if(joueurCourant==1){
+					joueurCourant=0;
+					stage.children[stage.getChildIndex(this)+14].alpha=0;
+  					stage.children[stage.getChildIndex(this)+7].alpha=1;
+				}
+  			}
+  		}
+  	}
+  	}
+  	
+  	//Arrows above the columns.
+  	function iniSelect1(){
+  		for(i=3;i<NB_COL+3;i++){
+  			var red = PIXI.Sprite.fromImage('images/pointer-red.png');
+  			red.width=60;
+  			red.height=60;
+  			red.x=90+i*80;
+  			red.y=100;
+  			red.alpha=0;
+  			red.interactive=true;
+  			stage.addChild(red);
+  		}
+  	}
+  	function iniSelect2(){
+  		for(i=3;i<NB_COL+3;i++){
+  			var blue = PIXI.Sprite.fromImage('images/pointer-blue.png');
+  			blue.width=60;
+  			blue.height=60;
+  			blue.x=90+i*80;
+  			blue.y=100;
+  			blue.alpha=0;
+  			blue.interactive=true;
+  			stage.addChild(blue);
+  			}
+  	}
+  	
+  	//Backgrounds of the game.
+  	var background1 = PIXI.Sprite.fromImage('images/menuBackground1.jpg');
+	var background2 = PIXI.Sprite.fromImage('images/menuBackground2.png');
+	var background3 = PIXI.Sprite.fromImage('images/menuBackground3.png');
+	stage.addChild(background1);
+	stage.addChild(background2);
+	stage.addChild(background3);
+	
+  	iniColumn();
+  	iniSelect2();
+  	iniSelect1();
+  	boutonReset();
+  	Joueur2();
+  	Computer();
+	renderer.render(stage);
+	animate();
+	function animate() {
+  		requestAnimationFrame(animate);
+  		renderer.render(stage);
+	};
+  </script>
+  <audio id="monson" src="ressources/Victory.mp3" preload="auto"></audio>
+  <audio id="monson" src="ressources/01.mp3" preload="auto" autoplay="autoplay" loop="loop"></audio>
+</body>
+</head>
